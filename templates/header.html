@@ -3,6 +3,38 @@
     <meta charset="UTF-8">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
     <title>StudyPlanner</title>
+    <style>
+    .task-border-preparation { border-left: 4px solid #3498db; }
+    .task-border-normal { border-left: 4px solid #e74c3c; }
+    .task-border-break { border-left: 4px solid #f39c12; }
+    .task-border-review { border-left: 4px solid #2ecc71; }
+
+    .badge-preparation { background-color: #e3f2fd; color: #1976d2; }
+    .badge-normal { background-color: #ffebee; color: #d32f2f; }
+    .badge-break { background-color: #fff3e0; color: #f57c00; }
+    .badge-review { background-color: #e8f5e8; color: #388e3c; }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #dee2e6;
+    }
+
+    .task-dot {
+      position: absolute;
+      left: 14px;
+      top: 20px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 3px solid;
+      background-color: #fff;
+    }
+  </style>
 </head>
 <body>
     <!-- Nav Bar -->

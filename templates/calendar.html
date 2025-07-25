@@ -17,6 +17,9 @@
               <div class="position-relative mb-4 card shadow-sm ps-3 task-border-{{ task.type }}">
                 <div class="task-dot task-border-{{ task.type }}"></div>
                 <div class="card-body">
+                  <!-- Task Date Display -->
+                  <small class="text-muted d-block mb-1">{{ date|date:"l, F j, Y" }}</small>
+
                   <div class="d-flex align-items-center text-secondary mb-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
