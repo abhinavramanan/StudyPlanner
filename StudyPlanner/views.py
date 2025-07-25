@@ -15,7 +15,6 @@ from collections import defaultdict
 logger = logging.getLogger(__name__)
 
 
-# Initialize Gemini API
 def initialize_gemini():
     try:
         # Use Django setting for API key (which gets it from environment variable)
@@ -29,13 +28,8 @@ def initialize_gemini():
         logger.error(f"Failed to initialize Gemini: {e}")
         raise
 
-
 def index(request):
     return render(request, "index.html")
-
-
-def list(request):
-    return render(request, "list.html")
 
 
 def generate_study_plan(request):

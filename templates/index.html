@@ -1,7 +1,77 @@
 <!DOCTYPE html>
 {% include "header.html" %}
-<!-- Content -->
+{% csrf_token %}
 <div class="container-fluid">
-    <h1>Welcome to StudyPlanner!</h1>
+    <div class="input-group" style="padding-top: 25px">
+      <input type="text" id="taskInput" class="form-control" placeholder="Enter task details or import string" aria-label="Task input">
+      <input type="date" id="taskDate" class="form-control" aria-label="Task date">
+      <button type="button" id="addTaskBtn" class="btn btn-outline-secondary">Add</button>
+      <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="visually-hidden">Toggle Dropdown</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="#" id="prioritizeAddBtn">Prioritize Add</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="#" id="addWeeklyBtn">Add Weekly</a></li>
+        <li><a class="dropdown-item" href="#" id="addDailyBtn">Add Daily</a></li>
+      </ul>
+    </div>
+
+
+    <!-- Task Lists -->
+    <div class="card mt-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>Tasks</h5>
+        <div>
+          <button class="btn btn-sm btn-outline-secondary me-2">Filter</button>
+          <button class="btn btn-sm btn-outline-secondary me-2">Sort</button>
+          <button id="generatePlanBtn" class="btn btn-sm btn-primary">Generate Study Plan</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th scope="col">Task Name</th>
+                <th scope="col">Date</th>
+                <th scope="col">Type</th>
+              </tr>
+            </thead>
+            <tbody id="taskTableBody">
+              <tr>
+                <td colspan="3" class="text-center">No tasks available.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 </div>
+
+<!-- Study Plan Modal -->
+<div class="modal fade" id="studyPlanModal" tabindex="-1" aria-labelledby="studyPlanModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="studyPlanModalLabel">Your Study Plan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="studyPlanContent" class="p-3">
+          <div class="text-center">
+            <div class="spinner-border" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Generating your study plan...</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% include "footer.html" %}

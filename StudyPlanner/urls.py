@@ -21,7 +21,6 @@ from StudyPlanner import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
-    path('list/', views.list, name='list'),
     path('generate-study-plan/', views.generate_study_plan, name='generate_study_plan'),
     path('calendar/', views.study_plan_calendar, name='study_plan_calendar')
 
