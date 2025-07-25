@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ study_plan.title }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .task-border-preparation { border-left: 4px solid #3498db; }
+    .task-border-normal { border-left: 4px solid #e74c3c; }
+    .task-border-break { border-left: 4px solid #f39c12; }
+    .task-border-review { border-left: 4px solid #2ecc71; }
+
+    .badge-preparation { background-color: #e3f2fd; color: #1976d2; }
+    .badge-normal { background-color: #ffebee; color: #d32f2f; }
+    .badge-break { background-color: #fff3e0; color: #f57c00; }
+    .badge-review { background-color: #e8f5e8; color: #388e3c; }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #dee2e6;
+    }
+
+    .task-dot {
+      position: absolute;
+      left: 14px;
+      top: 20px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 3px solid;
+      background-color: #fff;
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+  <div class="container my-5">
+    <div class="bg-primary text-white text-center rounded-3 p-4 mb-4">
+      <h1 class="h3">📅 {{ study_plan.title }}</h1>
+    </div>
+
+    {% if tasks_by_date %}
+      {% for date, tasks in tasks_by_date.items %}
+        <div class="mb-5">
+          <div class="bg-light p-3 border-start border-4 border-primary mb-3 rounded shadow-sm">
+            <h2 class="h5 mb-1">{{ date|date:"l, F j, Y" }}</h2>
+            <small class="text-muted">{{ tasks|length }} task{{ tasks|length|pluralize }}</small>
+          </div>
+
+          <div class="position-relative timeline ps-4">
+            {% for task in tasks %}
+              <div class="position-relative mb-4 card shadow-sm ps-3 task-border-{{ task.type }}">
+                <div class="task-dot task-border-{{ task.type }}"></div>
+                <div class="card-body">
+                  <div class="d-flex align-items-center text-secondary mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                    </svg>
+                    <small>{{ task.time_start }} - {{ task.time_end }}</small>
+                  </div>
+
+                  <h5 class="card-title mb-2">{{ task.activity }}</h5>
+                  <span class="badge rounded-pill badge-{{ task.type }} text-uppercase small mb-2">
+                    {{ task.type }}
+                  </span>
+
+                  {% if task.notes %}
+                    <p class="card-text fst-italic text-muted mt-2">{{ task.notes }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center text-muted py-5">
+        <h4>No tasks scheduled</h4>
+        <p>Your calendar is empty. Generate a study plan first.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

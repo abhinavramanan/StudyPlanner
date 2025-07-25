@@ -1,214 +1,250 @@
-        <footer>
-
-        </footer>
-    </body>
+</body>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Task management functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            // Store tasks locally
-            let tasks = [];
-
-            // DOM elements
-            const taskInput = document.getElementById('taskInput');
-            const addTaskBtn = document.getElementById('addTaskBtn');
-            const importTasksBtn = document.getElementById('importTasksBtn');
-            const processImportBtn = document.getElementById('processImportBtn');
-            const importModal = new bootstrap.Modal(document.getElementById('importModal'));
-            const taskTableBody = document.getElementById('taskTableBody');
-
-            // Helper to generate a unique ID
-            function generateId() {
-                return 'task_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-            }
-
-            // Add a single task from input
-            if (addTaskBtn) {
-                addTaskBtn.addEventListener('click', function() {
-                    const taskText = taskInput.value.trim();
-                    if (taskText) {
-                        // Create a simple task object
-                        const task = {
-                            id: generateId(),
-                            name: taskText,
-                            dueDate: '',
-                            priority: 'Medium',
-                            category: '',
-                            status: 'Not Started',
-                            createdAt: new Date().toISOString()
-                        };
-
-                        // Add to tasks array
-                        tasks.push(task);
-
-                        // Update the UI
-                        renderTasks();
-
-                        // Clear the input
-                        taskInput.value = '';
-                    }
-                });
-            }
-
-            // Open import modal
-            if (importTasksBtn) {
-                importTasksBtn.addEventListener('click', function() {
-                    importModal.show();
-                });
-            }
-
-            // Try to auto-detect format from pasted content
-            const importTextarea = document.getElementById('importTextarea');
-            if (importTextarea) {
-                importTextarea.addEventListener('input', function() {
-                    const content = this.value.trim();
-                    if (content.startsWith('[') || content.startsWith('{')) {
-                        document.getElementById('formatJSON').checked = true;
-                    } else if (content.includes(',') && content.split('\n')[0].includes(',')) {
-                        document.getElementById('formatCSV').checked = true;
-                    } else {
-                        document.getElementById('formatText').checked = true;
-                    }
-                });
-            }
-
-            // Process import
-            if (processImportBtn) {
-                processImportBtn.addEventListener('click', function() {
-                    const importData = document.getElementById('importTextarea').value;
-                    const format = document.querySelector('input[name="importFormat"]:checked').value;
-                    const includeProperties = document.getElementById('includeProperties').checked;
-                    const includeDates = document.getElementById('includeDates').checked;
-                    const overwriteExisting = document.getElementById('overwriteExisting').checked;
-
-                    if (!importData.trim()) {
-                        alert('Please enter data to import');
-                        return;
-                    }
-
-                    // Send data to server for processing
-                    fetch('/import_tasks/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-CSRFToken': getCsrfToken()
-                        },
-                        body: new URLSearchParams({
-                            'importData': importData,
-                            'importFormat': format,
-                            'includeProperties': includeProperties ? 'on' : 'off',
-                            'includeDates': includeDates ? 'on' : 'off',
-                            'overwriteExisting': overwriteExisting ? 'on' : 'off'
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            // Add imported tasks to our tasks array
-                            if (overwriteExisting) {
-                                tasks = data.tasks;
-                            } else {
-                                tasks = tasks.concat(data.tasks);
-                            }
-
-                            // Update UI
-                            renderTasks();
-
-                            // Show success message and close modal
-                            alert(data.message);
-                            importModal.hide();
-                            document.getElementById('importTextarea').value = '';
-                        } else {
-                            alert(data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error processing import: ' + error.message);
-                    });
-                });
-            }
-
-            // Helper to get CSRF token from cookies
-            function getCsrfToken() {
-                const name = 'csrftoken';
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
-                        }
+        <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
                     }
                 }
-                return cookieValue;
+            }
+            return cookieValue;
+        }
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            const date = document.getElementById('taskDate');
+            const tableBody = document.getElementById('taskTableBody');
+
+            if (input.value.trim() === '') return;
+
+            // Remove "No tasks available" message if it exists
+            if (tableBody.innerHTML.includes('No tasks available')) {
+                tableBody.innerHTML = '';
             }
 
-            // Render tasks in the table
-            function renderTasks() {
-                if (!taskTableBody) return;
+            // Add new row
+            tableBody.innerHTML += `
+                <tr>
+                    <td>${input.value}</td>
+                    <td>${date.value}</td>
+                    <td>normal</td>
+                    <td>
+                        <select class="form-select form-select-sm status-select">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </td>
+                </tr>
+            `;
 
-                if (tasks.length === 0) {
-                    taskTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No tasks available.</td></tr>';
-                    return;
+            input.value = '';
+        }
+        function prioritizeAddTask() {
+            const input = document.getElementById('taskInput');
+            const date = document.getElementById('taskDate');
+            const tableBody = document.getElementById('taskTableBody');
+
+            if (input.value.trim() === '') return;
+
+            // Remove "No tasks available" message if it exists
+            if (tableBody.innerHTML.includes('No tasks available')) {
+                tableBody.innerHTML = '';
+            }
+
+            // Add new row
+            tableBody.innerHTML += `
+                <tr>
+                    <td>${input.value}</td>
+                    <td>${date.value}</td>
+                    <td>priority</td>
+                    <td>
+                        <select class="form-select form-select-sm status-select">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </td>
+                </tr>
+            `;
+
+            input.value = '';
+        }
+        function generatePlan() {
+            // Get all tasks from the table
+            const tableBody = document.getElementById('taskTableBody');
+            const rows = tableBody.querySelectorAll('tr');
+
+            // Check if there are tasks
+            if (rows.length === 0 || (rows.length === 1 && rows[0].textContent.includes('No tasks available'))) {
+                alert('Please add some tasks first!');
+                return;
+            }
+
+            // Show the modal with loading spinner
+            const studyPlanModal = new bootstrap.Modal(document.getElementById('studyPlanModal'));
+            studyPlanModal.show();
+
+            // Reset the content to show loading spinner
+            const studyPlanContent = document.getElementById('studyPlanContent');
+            studyPlanContent.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Generating your study plan...</p>
+                </div>
+            `;
+
+            // Collect tasks data
+            const tasks = [];
+            rows.forEach(row => {
+                // Skip the "No tasks available" row
+                if (!row.textContent.includes('No tasks available')) {
+                    const cells = row.querySelectorAll('td');
+                    tasks.push({
+                        name: cells[0].textContent.trim(),
+                        date: cells[1].textContent.trim(),
+                        type: cells[2].textContent.trim(),
+                        status: cells[3].querySelector('select') ? cells[3].querySelector('select').value : 'pending'
+                    });
                 }
+            });
 
-                // Clear the table
-                taskTableBody.innerHTML = '';
+            console.log('Sending tasks:', tasks); // Debug logging
 
-                // Add each task to the table
-                tasks.forEach(task => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${task.name}</td>
-                        <td>${task.dueDate || '-'}</td>
-                        <td>${task.priority || '-'}</td>
-                        <td>${task.category || '-'}</td>
-                        <td>${task.status || 'Not Started'}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary edit-task" data-id="${task.id}">Edit</button>
-                            <button class="btn btn-sm btn-outline-danger delete-task" data-id="${task.id}">Delete</button>
-                        </td>
-                    `;
-                    taskTableBody.appendChild(row);
-                });
-
-                // Add event listeners for edit and delete buttons
-                document.querySelectorAll('.edit-task').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const taskId = this.getAttribute('data-id');
-                        const task = tasks.find(t => t.id === taskId);
-                        if (task) {
-                            // In a real app, you would show an edit form
-                            alert('Edit task: ' + task.name);
-                        }
-                    });
-                });
-
-                document.querySelectorAll('.delete-task').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const taskId = this.getAttribute('data-id');
-                        if (confirm('Are you sure you want to delete this task?')) {
-                            tasks = tasks.filter(t => t.id !== taskId);
-                            renderTasks();
-                        }
-                    });
-                });
-            }
-
-            // Handle Enter key press in task input
-            if (taskInput) {
-                taskInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        addTaskBtn.click();
+            // Send tasks to the backend
+            fetch('/generate-study-plan/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ tasks: tasks })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the generated study plan
+                if (data.error) {
+                    studyPlanContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                } else {
+                    // Display the study plan
+                    let planHtml = '<div class="alert alert-success"><h5>Generated Study Plan:</h5>';
+                    if (data.study_plan) {
+                        planHtml += '<pre>' + JSON.stringify(data.study_plan, null, 2) + '</pre>';
                     }
-                });
+                    if (data.warning) {
+                        planHtml += `<div class="alert alert-warning mt-2">${data.warning}</div>`;
+                    }
+                    planHtml += '</div>';
+                    studyPlanContent.innerHTML = planHtml;
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error); // Debug logging
+                // Display error message
+                studyPlanContent.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            });
+        }
+        // Add Task Event
+        document.getElementById('addTaskBtn').onclick = addTask;
+        document.getElementById('taskInput').onkeypress = function(e) {
+            if (e.key === 'Enter') addTask();
+        };
+
+        // Priority Add Task Event
+        document.getElementById('prioritizeAddBtn').onclick = prioritizeAddTask;
+
+        // Add Weekly Task Event
+        document.getElementById('addWeeklyBtn').onclick = function() {
+            const input = document.getElementById('taskInput');
+            const date = document.getElementById('taskDate');
+            const tableBody = document.getElementById('taskTableBody');
+
+            if (input.value.trim() === '') return;
+
+            // Remove "No tasks available" message if it exists
+            if (tableBody.innerHTML.includes('No tasks available')) {
+                tableBody.innerHTML = '';
             }
 
-            // Initial render
-            renderTasks();
+            // Add new row
+            tableBody.innerHTML += `
+                <tr>
+                    <td>${input.value} (Weekly)</td>
+                    <td>${date.value}</td>
+                    <td>weekly</td>
+                    <td>
+                        <select class="form-select form-select-sm status-select">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </td>
+                </tr>
+            `;
+
+            input.value = '';
+        };
+
+        // Add Daily Task Event
+        document.getElementById('addDailyBtn').onclick = function() {
+            const input = document.getElementById('taskInput');
+            const date = document.getElementById('taskDate');
+            const tableBody = document.getElementById('taskTableBody');
+
+            if (input.value.trim() === '') return;
+
+            // Remove "No tasks available" message if it exists
+            if (tableBody.innerHTML.includes('No tasks available')) {
+                tableBody.innerHTML = '';
+            }
+
+            // Add new row
+            tableBody.innerHTML += `
+                <tr>
+                    <td>${input.value} (Daily)</td>
+                    <td>${date.value}</td>
+                    <td>daily</td>
+                    <td>
+                        <select class="form-select form-select-sm status-select">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </td>
+                </tr>
+            `;
+
+            input.value = '';
+        };
+
+        // Generate Study Plan Event
+        document.getElementById('generatePlanBtn').onclick = generatePlan;
+
+        // Event delegation for status changes
+        document.getElementById('taskTableBody').addEventListener('change', function(e) {
+            if (e.target.classList.contains('status-select')) {
+                const row = e.target.closest('tr');
+                // Apply visual indicator based on status
+                row.className = ''; // Reset any existing classes
+                switch(e.target.value) {
+                    case 'pending':
+                        row.classList.add('table-light');
+                        break;
+                    case 'in-progress':
+                        row.classList.add('table-info');
+                        break;
+                    case 'completed':
+                        row.classList.add('table-success');
+                        break;
+                }
+            }
         });
     </script>
 </html>

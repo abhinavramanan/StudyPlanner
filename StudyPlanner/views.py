@@ -1,102 +1,141 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib import messages
+from django.conf import settings
 import json
 import csv
-import pandas as pd
 import os
-from datetime import datetime
+import google.generativeai as genai
+import logging
+import json
+from datetime import datetime, timedelta
+from collections import defaultdict
+
+
+logger = logging.getLogger(__name__)
+
+
+# Initialize Gemini API
+def initialize_gemini():
+    try:
+        # Use Django setting for API key (which gets it from environment variable)
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            raise ValueError("Gemini API key not found in environment variables")
+
+        genai.configure(api_key=api_key)
+        return genai.GenerativeModel('gemini-2.5-flash')
+    except Exception as e:
+        logger.error(f"Failed to initialize Gemini: {e}")
+        raise
+
 
 def index(request):
     return render(request, "index.html")
 
+
 def list(request):
-    # You might want to pass tasks data to the template
-    # For now we'll just render the template
     return render(request, "list.html")
 
-def settings(request):
-    return render(request, "settings.html")
 
-def import_tasks(request):
+def generate_study_plan(request):
     if request.method == 'POST':
         try:
-            # Get data from the request
-            import_data = request.POST.get('importData', '')
-            import_format = request.POST.get('importFormat', 'json')
-            include_properties = request.POST.get('includeProperties') == 'on'
-            include_dates = request.POST.get('includeDates') == 'on'
-            overwrite_existing = request.POST.get('overwriteExisting') == 'on'
+            # Parse JSON data
+            data = json.loads(request.body)
+            tasks = data.get('tasks', [])
 
-            if not import_data.strip():
-                return JsonResponse({'status': 'error', 'message': 'No data provided'})
+            if not tasks:
+                return JsonResponse({'error': 'No tasks provided'}, status=400)
 
-            # Process the input data based on format
-            tasks = []
+            # Build prompt
+            prompt = "Create a study plan/calendar based on these tasks:\n\n"
+            for task in tasks:
+                status = task.get('status', 'pending')
+                prompt += f"- Task: {task['name']}, Date: {task['date']}, Type: {task['type']}, Status: {status}\n"
 
-            if import_format == 'json':
-                # Process JSON data
-                try:
-                    json_data = json.loads(import_data)
-                    if isinstance(json_data, list):
-                        tasks = json_data
-                    else:
-                        # Handle case where JSON might be an object with a tasks key
-                        tasks = json_data.get('tasks', [json_data])
-                except json.JSONDecodeError:
-                    return JsonResponse({
-                        'status': 'error', 
-                        'message': 'Invalid JSON format. Please check your input.'
-                    })
+            prompt += """\nPlease organize these tasks into a well-structured study plan with time allocations and breaks. Give the output in a JSON format with the following structure:{
+  "study_plan": {
+    "title": "...",
+    "tasks": [
+      {
+        "date": "YYYY-MM-DD",
+        "time_start": "HH:MM",
+        "time_end": "HH:MM",
+        "activity": "...",
+        "type": "...",
+        "notes": "..."
+      }
+    ]
+  }
+}
+"""
 
-            elif import_format == 'csv':
-                # Process CSV data
-                try:
-                    lines = import_data.strip().split('\n')
-                    reader = csv.DictReader(lines)
-                    for row in reader:
-                        tasks.append(row)
-                except Exception as e:
-                    return JsonResponse({
-                        'status': 'error', 
-                        'message': f'Error parsing CSV: {str(e)}'
-                    })
+            # Initialize and call Gemini
+            try:
+                model = initialize_gemini()
+                response = model.generate_content(prompt)
 
-            elif import_format == 'text':
-                # Process simple text - one task per line
-                lines = import_data.strip().split('\n')
-                for i, line in enumerate(lines):
-                    if line.strip():
-                        # Create a simple task object from text line
-                        task = {
-                            'name': line.strip(),
-                            'id': f'task_{i}',
-                            'created_at': datetime.now().isoformat()
-                        }
-                        tasks.append(task)
+                if not response or not response.text:
+                    return JsonResponse({'error': 'Empty response from Gemini API'}, status=500)
 
-            # Process and return tasks
-            task_count = len(tasks)
+            except Exception as gemini_error:
+                logger.error(f"Gemini API error: {gemini_error}")
+                return JsonResponse({'error': 'Failed to connect to AI service'}, status=500)
 
-            if task_count > 0:
-                # In a real application, you would save these tasks to a database
-                # For now, just return them in the response
-                return JsonResponse({
-                    'status': 'success',
-                    'message': f'Successfully processed {task_count} tasks',
-                    'tasks': tasks
-                })
-            else:
-                return JsonResponse({
-                    'status': 'warning',
-                    'message': 'No tasks found in the imported data'
-                })
+            # Parse JSON response
+            try:
+                # Clean the response text - remove markdown formatting if present
+                response_text = response.text.strip()
+                if response_text.startswith('```json'):
+                    response_text = response_text[7:]  # Remove ```json
+                if response_text.endswith('```'):
+                    response_text = response_text[:-3]  # Remove ```
+
+                study_plan = json.loads(response_text)
+            except json.JSONDecodeError as json_error:
+                logger.error(f"JSON decode error: {json_error}, Raw response: {response.text}")
+                # Return a fallback response structure
+                fallback_plan = {
+                    "study_plan": {
+                        "title": "Generated Study Plan",
+                        "tasks": [{"name": task['name'], "date": task['date'], "type": task['type']} for task in tasks]
+                    }
+                }
+                return JsonResponse(
+                    {'study_plan': fallback_plan, 'warning': 'AI response was malformed, showing fallback plan'})
+
+            study_plan = json.loads(response_text)
+            request.session['latest_study_plan'] = study_plan
+            return JsonResponse({'study_plan': study_plan})
+
+
+        except json.JSONDecodeError as json_error:
+            logger.error(f"Request JSON decode error: {json_error}")
+            return JsonResponse({'error': 'Invalid JSON in request body'}, status=400)
 
         except Exception as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': f'Error importing tasks: {str(e)}'
-            })
+            logger.error(f"Unexpected error in generate_study_plan: {e}")
+            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
 
-    # If not POST, return error
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
+
+def study_plan_calendar(request):
+    study_plan_data = request.session.get('latest_study_plan')
+
+    if not study_plan_data:
+        messages.error(request, "No study plan available. Please generate one first.")
+        return redirect('index')
+
+    tasks_by_date = defaultdict(list)
+    for task in study_plan_data['study_plan'].get('tasks', []):
+        tasks_by_date[task['date']].append(task)
+
+    context = {
+        'study_plan': study_plan_data['study_plan'],
+        'tasks_by_date': dict(tasks_by_date),
+    }
+
+    return render(request, 'calendar.html', context)
+
