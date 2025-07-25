@@ -1,0 +1,214 @@
+        <footer>
+
+        </footer>
+    </body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Task management functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Store tasks locally
+            let tasks = [];
+
+            // DOM elements
+            const taskInput = document.getElementById('taskInput');
+            const addTaskBtn = document.getElementById('addTaskBtn');
+            const importTasksBtn = document.getElementById('importTasksBtn');
+            const processImportBtn = document.getElementById('processImportBtn');
+            const importModal = new bootstrap.Modal(document.getElementById('importModal'));
+            const taskTableBody = document.getElementById('taskTableBody');
+
+            // Helper to generate a unique ID
+            function generateId() {
+                return 'task_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            }
+
+            // Add a single task from input
+            if (addTaskBtn) {
+                addTaskBtn.addEventListener('click', function() {
+                    const taskText = taskInput.value.trim();
+                    if (taskText) {
+                        // Create a simple task object
+                        const task = {
+                            id: generateId(),
+                            name: taskText,
+                            dueDate: '',
+                            priority: 'Medium',
+                            category: '',
+                            status: 'Not Started',
+                            createdAt: new Date().toISOString()
+                        };
+
+                        // Add to tasks array
+                        tasks.push(task);
+
+                        // Update the UI
+                        renderTasks();
+
+                        // Clear the input
+                        taskInput.value = '';
+                    }
+                });
+            }
+
+            // Open import modal
+            if (importTasksBtn) {
+                importTasksBtn.addEventListener('click', function() {
+                    importModal.show();
+                });
+            }
+
+            // Try to auto-detect format from pasted content
+            const importTextarea = document.getElementById('importTextarea');
+            if (importTextarea) {
+                importTextarea.addEventListener('input', function() {
+                    const content = this.value.trim();
+                    if (content.startsWith('[') || content.startsWith('{')) {
+                        document.getElementById('formatJSON').checked = true;
+                    } else if (content.includes(',') && content.split('\n')[0].includes(',')) {
+                        document.getElementById('formatCSV').checked = true;
+                    } else {
+                        document.getElementById('formatText').checked = true;
+                    }
+                });
+            }
+
+            // Process import
+            if (processImportBtn) {
+                processImportBtn.addEventListener('click', function() {
+                    const importData = document.getElementById('importTextarea').value;
+                    const format = document.querySelector('input[name="importFormat"]:checked').value;
+                    const includeProperties = document.getElementById('includeProperties').checked;
+                    const includeDates = document.getElementById('includeDates').checked;
+                    const overwriteExisting = document.getElementById('overwriteExisting').checked;
+
+                    if (!importData.trim()) {
+                        alert('Please enter data to import');
+                        return;
+                    }
+
+                    // Send data to server for processing
+                    fetch('/import_tasks/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': getCsrfToken()
+                        },
+                        body: new URLSearchParams({
+                            'importData': importData,
+                            'importFormat': format,
+                            'includeProperties': includeProperties ? 'on' : 'off',
+                            'includeDates': includeDates ? 'on' : 'off',
+                            'overwriteExisting': overwriteExisting ? 'on' : 'off'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Add imported tasks to our tasks array
+                            if (overwriteExisting) {
+                                tasks = data.tasks;
+                            } else {
+                                tasks = tasks.concat(data.tasks);
+                            }
+
+                            // Update UI
+                            renderTasks();
+
+                            // Show success message and close modal
+                            alert(data.message);
+                            importModal.hide();
+                            document.getElementById('importTextarea').value = '';
+                        } else {
+                            alert(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error processing import: ' + error.message);
+                    });
+                });
+            }
+
+            // Helper to get CSRF token from cookies
+            function getCsrfToken() {
+                const name = 'csrftoken';
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            // Render tasks in the table
+            function renderTasks() {
+                if (!taskTableBody) return;
+
+                if (tasks.length === 0) {
+                    taskTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No tasks available.</td></tr>';
+                    return;
+                }
+
+                // Clear the table
+                taskTableBody.innerHTML = '';
+
+                // Add each task to the table
+                tasks.forEach(task => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${task.name}</td>
+                        <td>${task.dueDate || '-'}</td>
+                        <td>${task.priority || '-'}</td>
+                        <td>${task.category || '-'}</td>
+                        <td>${task.status || 'Not Started'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary edit-task" data-id="${task.id}">Edit</button>
+                            <button class="btn btn-sm btn-outline-danger delete-task" data-id="${task.id}">Delete</button>
+                        </td>
+                    `;
+                    taskTableBody.appendChild(row);
+                });
+
+                // Add event listeners for edit and delete buttons
+                document.querySelectorAll('.edit-task').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const taskId = this.getAttribute('data-id');
+                        const task = tasks.find(t => t.id === taskId);
+                        if (task) {
+                            // In a real app, you would show an edit form
+                            alert('Edit task: ' + task.name);
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.delete-task').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const taskId = this.getAttribute('data-id');
+                        if (confirm('Are you sure you want to delete this task?')) {
+                            tasks = tasks.filter(t => t.id !== taskId);
+                            renderTasks();
+                        }
+                    });
+                });
+            }
+
+            // Handle Enter key press in task input
+            if (taskInput) {
+                taskInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        addTaskBtn.click();
+                    }
+                });
+            }
+
+            // Initial render
+            renderTasks();
+        });
+    </script>
+</html>
