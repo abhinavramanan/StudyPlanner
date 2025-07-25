@@ -7,7 +7,6 @@ import csv
 import os
 import google.generativeai as genai
 import logging
-import json
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -99,7 +98,6 @@ def generate_study_plan(request):
                 return JsonResponse(
                     {'study_plan': fallback_plan, 'warning': 'AI response was malformed, showing fallback plan'})
 
-            study_plan = json.loads(response_text)
             request.session['latest_study_plan'] = study_plan
             return JsonResponse({'study_plan': study_plan})
 
