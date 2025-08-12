@@ -1,51 +1,110 @@
 {% include "header.html" %}
-  <div class="container my-5">
-    <div class="bg-primary text-white text-center rounded-3 p-4 mb-4">
-      <h1 class="h3">📅 {{ study_plan.title }}</h1>
+
+<div class="container my-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center py-4">
+                    <h1 class="card-title h3 mb-3">
+                        <i class="bi bi-calendar-check-fill me-2"></i>{{ study_plan.title }}
+                    </h1>
+                    <p class="card-text mb-0">Your AI-generated study schedule</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     {% if tasks_by_date %}
-      {% for date, tasks in tasks_by_date.items %}
-        <div class="mb-5">
-          <div class="bg-light p-3 border-start border-4 border-primary mb-3 rounded shadow-sm">
-            <h2 class="h5 mb-1">{{ date|date:"l, F j, Y" }}</h2>
-            <small class="text-muted">{{ tasks|length }} task{{ tasks|length|pluralize }}</small>
-          </div>
-
-          <div class="position-relative timeline ps-4">
-            {% for task in tasks %}
-              <div class="position-relative mb-4 card shadow-sm ps-3 task-border-{{ task.type }}">
-                <div class="task-dot task-border-{{ task.type }}"></div>
-                <div class="card-body">
-                  <!-- Task Date Display -->
-                  <small class="text-muted d-block mb-1">{{ date|date:"l, F j, Y" }}</small>
-
-                  <div class="d-flex align-items-center text-secondary mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-                    </svg>
-                    <small>{{ task.time_start }} - {{ task.time_end }}</small>
-                  </div>
-
-                  <h5 class="card-title mb-2">{{ task.activity }}</h5>
-                  <span class="badge rounded-pill badge-{{ task.type }} text-uppercase small mb-2">
-                    {{ task.type }}
-                  </span>
-
-                  {% if task.notes %}
-                    <p class="card-text fst-italic text-muted mt-2">{{ task.notes }}</p>
-                  {% endif %}
+        {% for date, tasks in tasks_by_date.items %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h2 class="h5 mb-0">
+                                <i class="bi bi-calendar3 me-2"></i>{{ date|date:"l, F j, Y" }}
+                            </h2>
+                            <span class="badge bg-primary rounded-pill">
+                                {{ tasks|length }} task{{ tasks|length|pluralize }}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="timeline position-relative">
+                                {% for task in tasks %}
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <div class="card border-0 shadow-sm task-border-{{ task.type }}">
+                                                <div class="card-body">
+                                                    <div class="row align-items-center">
+                                                        <div class="col-auto">
+                                                            <div class="text-center">
+                                                                <div class="bg-light rounded-circle p-2 mb-1">
+                                                                    <i class="bi bi-clock text-primary"></i>
+                                                                </div>
+                                                                <small class="text-muted fw-medium">
+                                                                    {{ task.time_start }} - {{ task.time_end }}
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col">
+                                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                <h5 class="card-title mb-0 me-3">{{ task.activity }}</h5>
+                                                                <span class="badge rounded-pill badge-{{ task.type }} text-uppercase small">
+                                                                    {{ task.type }}
+                                                                </span>
+                                                            </div>
+                                                            {% if task.notes %}
+                                                                <p class="card-text text-muted mb-0">
+                                                                    <i class="bi bi-info-circle me-1"></i>{{ task.notes }}
+                                                                </p>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            {% endfor %}
-          </div>
+            </div>
+        {% endfor %}
+        
+        <!-- Action Section -->
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Ready to Start?</h5>
+                        <p class="card-text text-muted">Your study plan is ready. Good luck with your learning journey!</p>
+                        <a href="/" class="btn btn-primary me-2">
+                            <i class="bi bi-plus-circle me-1"></i>Add More Tasks
+                        </a>
+                        <button onclick="window.print()" class="btn btn-outline-secondary">
+                            <i class="bi bi-printer me-1"></i>Print Schedule
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-      {% endfor %}
     {% else %}
-      <div class="text-center text-muted py-5">
-        <h4>No tasks scheduled</h4>
-        <p>Your calendar is empty. Generate a study plan first.</p>
-      </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-calendar-x display-1 text-muted mb-3 d-block"></i>
+                        <h4 class="text-muted">No Study Plan Available</h4>
+                        <p class="text-muted mb-4">You haven't generated a study plan yet. Create one to see your schedule here.</p>
+                        <a href="/" class="btn btn-primary">
+                            <i class="bi bi-arrow-left me-1"></i>Go Back to Tasks
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% endif %}
-  </div>
+</div>
+
 {% include "footer.html" %}
