@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def initialize_gemini():
     try:
         # Use Django setting for API key (which gets it from environment variable)
-        api_key = settings.GEMINI_API_KEY
+        api_key = "AIzaSyC9I5RvNVb2Cs889UxQ1lA3aQ0xb_G2SDw"
         if not api_key:
             raise ValueError("Gemini API key not found in environment variables")
 
